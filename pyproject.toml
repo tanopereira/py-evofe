@@ -26,3 +26,6 @@ dev = [
     "pytest>=8.4.2",
     "ruff>=0.15.18",
 ]
+
+[tool.uv.build-backend]
+module-name = "evofe"
