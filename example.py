@@ -9,7 +9,8 @@ It follows the standard sklearn pattern:
 
     evo = EvoFE(...)          # configure
     evo.fit(X_train, y_train) # run evolution → finds best feature recipe
-    evo.transform(X_test)     # apply recipe → feature-augmented DataFrame
+    evo.transform(X_test)     # apply recipe → numpy array for sklearn Pipelines
+    evo.transform_df(X_test)  # apply recipe → enriched polars DataFrame
     evo.predict(X_test)       # apply recipe + model → predictions
     evo.predict_proba(X_test) # class probabilities (classification only)
 
@@ -66,6 +67,7 @@ def example_basic():
         metric="default",        # "default" | "auc" | "f1" | "mae"
         early_stopping_rounds=5,
         verbose=True,
+        random_state=42,         # deterministic reproducibility seed
     )
 
     # ── fit(X, y) — runs evolution, finds best feature recipe ───────────────
@@ -78,11 +80,15 @@ def example_basic():
     for gene in recipe.genes:
         print(f"  • {gene.to_formula()}  →  {gene.output_col}")
 
-    # ── transform(X) — apply recipe, returns enriched DataFrame ────────────
-    X_test_enriched = evo.transform(X_test_df)
+    # ── transform_df(X) — apply recipe, returns enriched DataFrame ─────────
+    X_test_enriched = evo.transform_df(X_test_df)
     new_cols = [c for c in X_test_enriched.columns if c not in X_test_df.columns]
-    print(f"\ntransform(): added {len(new_cols)} new column(s): {new_cols}")
+    print(f"\ntransform_df(): added {len(new_cols)} new column(s): {new_cols}")
     print(X_test_enriched.head(3))
+
+    # ── transform(X) — returns a 2D numpy array for sklearn Pipelines ──────
+    X_test_arr = evo.transform(X_test_df)
+    print(f"\ntransform() returns a numpy array of shape: {X_test_arr.shape}")
 
     # ── predict_proba(X) — class probability matrix ─────────────────────────
     proba = evo.predict_proba(X_test_df)

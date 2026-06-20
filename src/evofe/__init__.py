@@ -25,7 +25,11 @@ from .evaluation.cv import evaluate_fitness, apply_individual
 from .evaluation.tuning import make_tunable
 from .builtin import register_transformer
 
-__version__ = "0.1.0"
+try:
+    from importlib.metadata import version as _version
+    __version__ = _version("py-evofe")
+except Exception:
+    __version__ = "0.1.0"
 __all__ = [
     "EvoFE",
     "EvoRecipe",

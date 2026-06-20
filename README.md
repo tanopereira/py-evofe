@@ -83,9 +83,13 @@ print("Evolved genes:")
 for gene in recipe.genes:
     print(f"  • {gene.to_formula()} -> {gene.output_col}")
 
-# 4. Transform: Add evolved features to test data
-X_test_enriched = evo.transform(X_test_df)
-print(f"Enriched test columns: {X_test_enriched.columns}")
+# 4. Transform: Get numeric features array for downstream sklearn estimators
+X_test_arr = evo.transform(X_test_df)
+print(f"Selected features array shape: {X_test_arr.shape}")
+
+# Alternatively, get the enriched Polars DataFrame with original + new features:
+X_test_enriched = evo.transform_df(X_test_df)
+print(f"Enriched DataFrame columns: {X_test_enriched.columns}")
 
 # 5. Predict using the best evolved model
 predictions = evo.predict(X_test_df)
@@ -103,6 +107,41 @@ probabilities = evo.predict_proba(X_test_df)
 | **Encoding & Binning** | `target_encode`, `target_encode_multiclass`, `frequency_encode`, `one_hot_encode`, `quantile_binning`, `log_binning`, `rank_transform`, `datetime_extract` |
 | **Dimensionality Reduction** | `pca`, `truncated_svd`, `random_projection`, `umap` |
 | **Graph & Clustering** | `genie`, `genie_centroid_dist`, `lumbermark`, `lumbermark_centroid_dist`, `mst_score`, `deadwood` |
+
+## Scikit-Learn Pipeline Integration
+
+Since `EvoFE.transform()` returns a standard 2D numeric numpy array of selected features, you can drop it directly into standard scikit-learn Pipelines:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from evofe import EvoFE
+
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("evofe", EvoFE(task="classification", pop_size=10, n_generations=5, random_state=42))
+])
+
+# Fits scaler on data, then runs evolutionary feature search on scaled outputs
+pipeline.fit(X_train, y_train)
+
+# Scores the entire pipeline on test data
+score = pipeline.score(X_test, y_test)
+print(f"Accuracy: {score:.4f}")
+```
+
+## Reproducibility
+
+Pass the `random_state` parameter to `EvoFE` to ensure evolutionary search runs are deterministic and reproducible:
+
+```python
+evo = EvoFE(
+    task="classification",
+    random_state=42, # seeds random and numpy modules for reproducibility
+    pop_size=10,
+    n_generations=5
+)
+```
 
 ---
 

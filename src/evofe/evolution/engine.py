@@ -226,6 +226,7 @@ def evolve_features(
             val_idx=val_idx,
             holdout_idx=holdout_idx,
             state_cache=state_cache,
+            verbose=verbose,
             **kwargs
         )
         fitness_cache[cache_key] = copy.deepcopy(evaluated_ind)

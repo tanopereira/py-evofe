@@ -51,10 +51,7 @@ class Gene:
     state: Optional[Any] = None
     tested: bool = False
 
-    def __post_init__(self):
-        transformer = evo_transformers.get(self.transformer_name)
-        if transformer is not None:
-            transformer.params = self.params
+
     
     @property
     def output_col(self) -> str:

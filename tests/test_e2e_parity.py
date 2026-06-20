@@ -458,7 +458,7 @@ def test_column_naming_hash_discrepancy():
     gene = Gene(transformer_name="power", input_cols=["num1"], params={"p": 3.0})
     df = pl.DataFrame({"num1": [1.0, 2.0, 3.0]})
     trans = evo_transformers["power"]
-    trans.fit(df, input_cols=["num1"])
+    trans.fit(df, input_cols=["num1"], params={"p": 3.0})
     res_df = trans.transform(df)
     # The output column name should match gene.output_col
     assert gene.output_col in res_df.columns, f"Naming mismatch: expected {gene.output_col}, found {res_df.columns}"

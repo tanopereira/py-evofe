@@ -76,7 +76,7 @@ def gene_to_state_key(gene):
 # ---------------------------------------------------------------------------
 
 def apply_individual(individual, data, target_col=None, is_train=True,
-                     allow_prune=True, state_cache=None):
+                     allow_prune=True, state_cache=None, verbose=False):
     """
     Apply the individual's feature pipeline to *data*.
 
@@ -179,7 +179,8 @@ def apply_individual(individual, data, target_col=None, is_train=True,
         except Exception as e:
             data = old_data
             if allow_prune:
-                print(f"  [Prune] Dropped gene {gene.transformer_name}: {e}")
+                if verbose:
+                    print(f"  [Prune] Dropped gene {gene.transformer_name}: {e}")
             else:
                 raise
 
@@ -215,6 +216,7 @@ def evaluate_fitness(individual, data, target_col,
     """
     if state_cache is None:
         state_cache = {}
+    verbose = kwargs.get('verbose', False)
 
     if split_ratio is None:
         split_ratio = [0.7, 0.3]
@@ -248,7 +250,7 @@ def evaluate_fitness(individual, data, target_col,
         ind_copy = _shallow_copy_individual(individual)
         try:
             train_feat = apply_individual(
-                ind_copy, train_df, target_col, is_train=True, state_cache=state_cache)
+                ind_copy, train_df, target_col, is_train=True, state_cache=state_cache, verbose=verbose)
         except Exception:
             return None, None, None, None
 
@@ -414,7 +416,7 @@ def evaluate_holdout_fitness(individual, data, split_strategy,
 
     ind_copy = _shallow_copy_individual(individual)
     try:
-        train_feat = apply_individual(ind_copy, train_df, target_col, is_train=True, state_cache=state_cache)
+        train_feat = apply_individual(ind_copy, train_df, target_col, is_train=True, state_cache=state_cache, verbose=verbose)
     except Exception:
         individual.holdout_fitness = -np.inf
         return individual

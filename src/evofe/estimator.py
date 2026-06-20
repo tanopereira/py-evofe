@@ -69,12 +69,13 @@ class EvoFE(BaseEstimator, TransformerMixin):
         cv_folds: int = 5,
         evaluation_strategy: str = "cv",
         split_ratio: Optional[List[float]] = None,
-        allowed_transformers=None,
+        allowed_transformers="all",
         complexity_penalty: float = 0.0,
         metric: str = "default",
         mutation_rate: float = 0.5,
         early_stopping_rounds: Optional[int] = None,
         verbose: bool = True,
+        random_state: Optional[int] = None,
     ):
         self.task = task
         self.evaluator = evaluator
@@ -89,6 +90,7 @@ class EvoFE(BaseEstimator, TransformerMixin):
         self.mutation_rate = mutation_rate
         self.early_stopping_rounds = early_stopping_rounds
         self.verbose = verbose
+        self.random_state = random_state
 
     # ── Internal helpers ────────────────────────────────────────────────────
 
@@ -142,6 +144,11 @@ class EvoFE(BaseEstimator, TransformerMixin):
         -------
         self
         """
+        if self.random_state is not None:
+            import random
+            random.seed(self.random_state)
+            np.random.seed(self.random_state)
+
         df = self._to_polars(X, feature_names)
 
         if y is not None:
@@ -188,7 +195,7 @@ class EvoFE(BaseEstimator, TransformerMixin):
         import copy
         best = copy.deepcopy(self.recipe_.best_individual)
         # Apply genes (fit on full data)
-        feat_df = apply_individual(best, df, target_col, is_train=True)
+        feat_df = apply_individual(best, df, target_col, is_train=True, verbose=self.verbose)
 
         raw_cols = (best.numeric_cols + best.categorical_cols
                     + [g.output_col for g in best.genes])
@@ -220,7 +227,7 @@ class EvoFE(BaseEstimator, TransformerMixin):
         self.final_feature_cols_ = feature_cols
         self.fitted_individual_ = best   # carries fitted gene states
 
-    def transform(self, X, feature_names=None) -> pl.DataFrame:
+    def transform_df(self, X, feature_names=None) -> pl.DataFrame:
         """
         Apply the evolved feature recipe to new data.
 
@@ -234,15 +241,13 @@ class EvoFE(BaseEstimator, TransformerMixin):
                                   is_train=False, allow_prune=False)
         return result
 
-    def predict(self, X, feature_names=None) -> np.ndarray:
+    def transform(self, X, feature_names=None) -> np.ndarray:
         """
-        Apply recipe then run the final model to produce predictions.
+        Apply the evolved feature recipe to new data and return a numpy array
+        of the selected features, suitable for scikit-learn pipelines.
         """
         check_is_fitted(self, "recipe_")
-        if self.recipe_.best_model is None:
-            raise NotFittedError("No final model found. Call fit() first.")
-
-        feat_df = self.transform(X, feature_names)
+        feat_df = self.transform_df(X, feature_names)
         feature_cols = self.final_feature_cols_
 
         for col in feature_cols:
@@ -251,10 +256,19 @@ class EvoFE(BaseEstimator, TransformerMixin):
                 feat_df = feat_df.with_columns(
                     pl.col(col).cast(pl.Categorical).to_physical())
 
-        # Only select cols that exist in feat_df (inference may drop a col)
         avail = [c for c in feature_cols if c in feat_df.columns]
         X_new = feat_df.select(avail).to_numpy().astype(np.float64)
+        return X_new
 
+    def predict(self, X, feature_names=None) -> np.ndarray:
+        """
+        Apply recipe then run the final model to produce predictions.
+        """
+        check_is_fitted(self, "recipe_")
+        if self.recipe_.best_model is None:
+            raise NotFittedError("No final model found. Call fit() first.")
+
+        X_new = self.transform(X, feature_names)
         model = self.recipe_.best_model
         return self._model_predict(model, X_new)
 
@@ -292,6 +306,34 @@ class EvoFE(BaseEstimator, TransformerMixin):
         if hasattr(model, "predict"):
             return model.predict(X_new)
         raise TypeError(f"Unsupported model type: {type(model)}")
+
+    def score(self, X, y) -> float:
+        """
+        Return the mean accuracy or R^2 score on the given test data and labels.
+        """
+        check_is_fitted(self, "recipe_")
+        preds = self.predict(X)
+        if self.task == "classification":
+            from sklearn.metrics import accuracy_score
+            y_pred = (preds >= 0.5).astype(int)
+            classes = self.recipe_.classes
+            if classes is not None:
+                y_mapped = np.array([classes.index(v) for v in y])
+            else:
+                y_mapped = y
+            return accuracy_score(y_mapped, y_pred)
+        elif self.task == "multiclass":
+            from sklearn.metrics import accuracy_score
+            y_pred = preds.argmax(axis=1)
+            classes = self.recipe_.classes
+            if classes is not None:
+                y_mapped = np.array([classes.index(v) for v in y])
+            else:
+                y_mapped = y
+            return accuracy_score(y_mapped, y_pred)
+        else: # regression
+            from sklearn.metrics import r2_score
+            return r2_score(y, preds)
 
     def get_recipe(self) -> EvoRecipe:
         """Return the EvoRecipe result object."""

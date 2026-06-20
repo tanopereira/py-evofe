@@ -223,9 +223,13 @@ class TestEvoFEEstimator:
         evo = EvoFE(task="multiclass", evaluator="lightgbm",
                     pop_size=3, n_generations=2, cv_folds=2, verbose=False)
         evo.fit(X, y)
-        transformed = evo.transform(X)
-        assert isinstance(transformed, pl.DataFrame)
-        assert transformed.height == X.height
+        transformed_df = evo.transform_df(X)
+        assert isinstance(transformed_df, pl.DataFrame)
+        assert transformed_df.height == X.height
+
+        transformed_arr = evo.transform(X)
+        assert isinstance(transformed_arr, np.ndarray)
+        assert transformed_arr.shape[0] == X.height
 
     def test_predict_shape(self, iris_df):
         from evofe import EvoFE
@@ -263,6 +267,50 @@ class TestEvoFEEstimator:
         assert recipe.evaluator == "lightgbm"
         assert recipe.classes is not None
         assert recipe.best_model is not None
+
+    def test_score_method(self, iris_df):
+        from evofe import EvoFE
+        y = iris_df["target"].to_numpy()
+        X = iris_df.drop("target")
+        evo = EvoFE(task="multiclass", evaluator="lightgbm",
+                    pop_size=2, n_generations=1, cv_folds=2, verbose=False)
+        evo.fit(X, y)
+        score = evo.score(X, y)
+        assert isinstance(score, float)
+        assert 0.0 <= score <= 1.0
+
+    def test_pipeline_compatibility(self, iris_df):
+        from evofe import EvoFE
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+        y = iris_df["target"].to_numpy()
+        X = iris_df.drop("target")
+        pipeline = Pipeline([
+            ("scaler", StandardScaler()),
+            ("evofe", EvoFE(task="multiclass", evaluator="lightgbm",
+                            pop_size=2, n_generations=1, cv_folds=2, verbose=False))
+        ])
+        pipeline.fit(X, y)
+        preds = pipeline.predict(X)
+        assert preds.shape[0] == X.shape[0]
+
+    def test_random_state_reproducibility(self, iris_df):
+        from evofe import EvoFE
+        y = iris_df["target"].to_numpy()
+        X = iris_df.drop("target")
+        
+        # Two runs with the same seed
+        evo1 = EvoFE(task="multiclass", evaluator="lightgbm",
+                     pop_size=3, n_generations=2, cv_folds=2, verbose=False, random_state=42)
+        evo1.fit(X, y)
+        recipe1 = [g.to_formula() for g in evo1.get_recipe().best_individual.genes]
+        
+        evo2 = EvoFE(task="multiclass", evaluator="lightgbm",
+                     pop_size=3, n_generations=2, cv_folds=2, verbose=False, random_state=42)
+        evo2.fit(X, y)
+        recipe2 = [g.to_formula() for g in evo2.get_recipe().best_individual.genes]
+        
+        assert recipe1 == recipe2
 
 
 # ===========================================================================

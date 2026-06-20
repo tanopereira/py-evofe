@@ -1,9 +1,21 @@
 [project]
 name = "py-evofe"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python implementation of Evolutionary Feature Engineering (evoFE)"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Gustavo Pereira", email = "tanopereira@gmail.com" }
+]
+keywords = ["machine-learning", "feature-engineering", "evolutionary-algorithms", "genetic-programming", "scikit-learn"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
 dependencies = [
     "lightgbm>=4.6.0",
     "optuna>=4.9.0",
@@ -15,6 +27,11 @@ dependencies = [
     "umap-learn>=0.5.12",
     "xgboost>=2.1.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/tanopereira/py-evoFE"
+Repository = "https://github.com/tanopereira/py-evoFE"
+Issues = "https://github.com/tanopereira/py-evoFE/issues"
 
 [build-system]
 requires = ["uv_build>=0.11.21,<0.12.0"]

@@ -11,7 +11,9 @@ def tune_evaluator(
     evaluator="lightgbm",
     n_trials=10, 
     cv_folds=3, 
-    num_class=None
+    num_class=None,
+    feature_names=None,
+    **kwargs
 ):
     """
     Hyperparameter tuning for registered evaluators using Optuna.
@@ -60,7 +62,8 @@ def tune_evaluator(
                 x_val=X_val, y_val=y_val, 
                 task=task, 
                 num_class=num_class,
-                feature_names=kwargs.get('feature_names') if 'kwargs' in locals() else None,
+                feature_names=feature_names,
+                **kwargs,
                 **params
             )
             
@@ -119,9 +122,10 @@ def _make_optuna_evaluator(base_evaluator_name, n_trials=5):
             else:
                 params = {}
                 
+            combined_params = {**kwargs, **params}
             res = base_train(
                 x_train, y_train, x_val, y_val, 
-                task=task, num_threads=num_threads, num_class=num_class, **kwargs, **params
+                task=task, num_threads=num_threads, num_class=num_class, **combined_params
             )
             
             preds = res["predictions"]
@@ -144,9 +148,10 @@ def _make_optuna_evaluator(base_evaluator_name, n_trials=5):
         
         # Train final model with best params
         best_params = study.best_params
+        combined_best_params = {**kwargs, **best_params}
         return base_train(
             x_train, y_train, x_val, y_val, 
-            task=task, num_threads=num_threads, num_class=num_class, **kwargs, **best_params
+            task=task, num_threads=num_threads, num_class=num_class, **combined_best_params
         )
     return train_func
 
@@ -235,11 +240,12 @@ def make_tunable(
             import numpy as np
             params = {name: _suggest(trial, name, spec)
                       for name, spec in param_ranges.items()}
+            combined_params = {**kwargs, **params}
             res = base_train(
                 x_train, y_train, x_val, y_val,
                 task=task, num_threads=num_threads,
                 num_class=num_class, feature_names=feature_names,
-                **kwargs, **params
+                **combined_params
             )
             preds = res["predictions"]
             if preds is None:
@@ -252,11 +258,12 @@ def make_tunable(
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=n_trials)
         best_params = study.best_params
+        combined_best_params = {**kwargs, **best_params}
         return base_train(
             x_train, y_train, x_val, y_val,
             task=task, num_threads=num_threads,
             num_class=num_class, feature_names=feature_names,
-            **kwargs, **best_params
+            **combined_best_params
         )
 
     register_evaluator(tuner_name, train_func)
