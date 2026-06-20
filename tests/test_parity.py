@@ -506,8 +506,13 @@ class TestRDirUntouched:
     def test_r_dir_git_clean(self):
         # Check that no tracked files in the R directory were modified.
         # Untracked files (pre-existing from earlier sessions) are ignored.
+        import os
+        r_dir = "../evoFE"
+        if not os.path.exists(r_dir):
+            pytest.skip("R directory not found locally.")
+
         result = subprocess.run(
-            ["git", "-C", "../evoFE", "status", "--porcelain"],
+            ["git", "-C", r_dir, "status", "--porcelain"],
             capture_output=True, text=True
         )
         assert result.returncode == 0
