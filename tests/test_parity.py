@@ -507,7 +507,7 @@ class TestRDirUntouched:
         # Check that no tracked files in the R directory were modified.
         # Untracked files (pre-existing from earlier sessions) are ignored.
         import os
-        r_dir = "../evoFE"
+        r_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../evoFE"))
         if not os.path.exists(r_dir):
             pytest.skip("R directory not found locally.")
 
