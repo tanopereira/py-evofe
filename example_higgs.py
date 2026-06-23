@@ -6,7 +6,7 @@ This script demonstrates how to load the Higgs Boson Machine Learning Challenge 
 and run `EvoFE` to discover new features.
 
 Dataset: https://www.kaggle.com/c/higgs-boson/data
-Assumed location: ~/Downloads/higgs-boson/training.zip
+Assumed location: ./training.zip
 """
 
 import os
@@ -18,7 +18,8 @@ from evofe import EvoFE
 
 
 def run_higgs_example():
-    file_path = os.path.expanduser("~/Downloads/higgs-boson/training.zip")
+    # Place the Kaggle dataset 'training.zip' in the same directory as this script, or provide the path here
+    file_path = "training.zip"
     
     if not os.path.exists(file_path):
         print(f"Error: Could not find the dataset at {file_path}")
