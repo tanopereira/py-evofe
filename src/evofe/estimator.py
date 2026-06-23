@@ -56,6 +56,10 @@ class EvoFE(BaseEstimator, TransformerMixin):
         Probability of mutating an offspring.
     early_stopping_rounds : int | None
         Stop evolution if fitness does not improve for this many generations.
+    stagnation_limit : int | None
+        Number of generations without improvement before population dynamically expands.
+    expansion_factor : float
+        Factor by which to expand population on stagnation (default 1.5).
     verbose : bool
         Print progress.
     """
@@ -74,6 +78,8 @@ class EvoFE(BaseEstimator, TransformerMixin):
         metric: str = "default",
         mutation_rate: float = 0.5,
         early_stopping_rounds: Optional[int] = None,
+        stagnation_limit: Optional[int] = None,
+        expansion_factor: float = 1.5,
         verbose: bool = True,
         random_state: Optional[int] = None,
     ):
@@ -89,6 +95,8 @@ class EvoFE(BaseEstimator, TransformerMixin):
         self.metric = metric
         self.mutation_rate = mutation_rate
         self.early_stopping_rounds = early_stopping_rounds
+        self.stagnation_limit = stagnation_limit
+        self.expansion_factor = expansion_factor
         self.verbose = verbose
         self.random_state = random_state
 
@@ -174,6 +182,8 @@ class EvoFE(BaseEstimator, TransformerMixin):
             n_generations=self.n_generations,
             mutation_rate=self.mutation_rate,
             early_stopping_rounds=self.early_stopping_rounds,
+            stagnation_limit=self.stagnation_limit,
+            expansion_factor=self.expansion_factor,
             task=self.task,
             evaluator=self.evaluator,
             evaluation_strategy=self.evaluation_strategy,

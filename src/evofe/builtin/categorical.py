@@ -393,4 +393,14 @@ def create_categorical_transformers() -> dict:
         name_generator=partial(gene_col_name, transformer_name="target_encode_multiclass", prefix="temc")
     )
     
+    transformers['concat'] = EvoTransformer(
+        name="concat",
+        type_="multivariate",
+        input_type="categorical",
+        output_type="categorical",
+        apply_func=lambda data, cols, state: pl.concat_str([pl.col(c).cast(pl.Utf8) for c in cols], separator="_"),
+        name_generator=partial(gene_col_name, transformer_name="concat", prefix="concat"),
+        allow_replace=False
+    )
+
     return transformers

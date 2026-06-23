@@ -253,8 +253,13 @@ def evolve_features(
         population[i] = _eval(ind)
         history.append(copy.deepcopy(population[i]))
         if verbose:
+            genes_str = ", ".join([g.to_formula() for g in population[i].genes])
+            if not genes_str:
+                genes_str = "original data"
+            if len(genes_str) > 80:
+                genes_str = genes_str[:77] + "..."
             print(f"  [Init] Individual {i+1}/{pop_size} -> "
-                  f"Fitness: {population[i].fitness:.4f}")
+                  f"Fitness: {population[i].fitness:.4f} | Genes: {genes_str}")
 
     population.sort(key=lambda ind: ind.fitness if not np.isnan(ind.fitness) else -np.inf,
                     reverse=True)
@@ -276,10 +281,15 @@ def evolve_features(
 
         # Stagnation-based population control (growth/decay)
         if stagnation_limit is not None:
+            old_size = current_pop_size
             if generations_without_improvement >= stagnation_limit:
                 current_pop_size = max(current_pop_size + 1, int(current_pop_size * expansion_factor))
+                if verbose:
+                    print(f"  [Dynamic Pop] Stagnation reached. Expanding pop from {old_size} to {current_pop_size}")
             elif generations_without_improvement == 0:
                 current_pop_size = max(pop_size, int(current_pop_size * 0.7))
+                if verbose and current_pop_size < old_size:
+                    print(f"  [Dynamic Pop] Improvement found. Shrinking pop from {old_size} to {current_pop_size}")
             target_pop_size = current_pop_size
         else:
             target_pop_size = pop_size
@@ -374,10 +384,19 @@ def evolve_features(
             next_generation.append(child)
 
         # Evaluate next generation
+        if verbose:
+            print(f"Evaluating Generation {gen} (target size: {target_pop_size})...")
         for i, ind in enumerate(next_generation):
             if np.isnan(ind.fitness):
                 next_generation[i] = _eval(ind)
                 history.append(copy.deepcopy(next_generation[i]))
+                if verbose:
+                    genes_str = ", ".join([g.to_formula() for g in next_generation[i].genes])
+                    if not genes_str:
+                        genes_str = "original data"
+                    if len(genes_str) > 80:
+                        genes_str = genes_str[:77] + "..."
+                    print(f"  [Gen {gen}] Ind {i+1}/{target_pop_size} -> Fitness: {next_generation[i].fitness:.4f} | Genes: {genes_str}")
 
         population = sorted(
             next_generation,

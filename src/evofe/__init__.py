@@ -29,7 +29,7 @@ try:
     from importlib.metadata import version as _version
     __version__ = _version("py-evofe")
 except Exception:
-    __version__ = "0.1.0"
+    __version__ = "0.2.0"
 __all__ = [
     "EvoFE",
     "EvoRecipe",

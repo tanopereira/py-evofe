@@ -112,4 +112,22 @@ def create_math_transformers() -> dict:
         name_generator=partial(gene_col_name, transformer_name="log_ratio", prefix="lr")
     )
 
+    def _displaced_log_apply(data, cols, state, params=None):
+        displacement = 100
+        if params and 'displacement' in params:
+            displacement = params['displacement']
+        elif state and isinstance(state, dict) and 'displacement' in state:
+            displacement = state['displacement']
+        val = pl.col(cols[0]).cast(pl.Float64)
+        res = (val + displacement).abs().log1p()
+        return pl.when(res.is_nan() | res.is_infinite() | res.is_null()).then(0.0).otherwise(res)
+
+    transformers['displaced_log'] = EvoTransformer(
+        name="displaced_log",
+        type_="unary",
+        input_type="numeric",
+        apply_func=_displaced_log_apply,
+        name_generator=partial(gene_col_name, transformer_name="displaced_log", prefix="dlog")
+    )
+
     return transformers
